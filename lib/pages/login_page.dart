@@ -1,4 +1,6 @@
+import 'package:finstagram/services/firebase_service.dart';
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -9,9 +11,18 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   double? _deviceHeight, _deviceWidth;
+  FirebaseService? _firebaseService;
   final GlobalKey<FormState> loginFormKey = GlobalKey<FormState>();
   String? email;
   String? password;
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    _firebaseService = GetIt.instance.get<FirebaseService>();
+  }
+
   @override
   Widget build(BuildContext context) {
     _deviceHeight = MediaQuery.of(context).size.height;
@@ -69,7 +80,7 @@ class _LoginPageState extends State<LoginPage> {
 
   Widget emailField() {
     return TextFormField(
-      decoration: InputDecoration(hintText: 'Email...'),
+      decoration: const InputDecoration(hintText: 'Email...'),
       onSaved: (value) {
         setState(() {
           email = value;
@@ -88,13 +99,13 @@ class _LoginPageState extends State<LoginPage> {
   Widget passwordField() {
     return TextFormField(
       obscureText: true,
-      decoration: InputDecoration(hintText: 'Password...'),
+      decoration: const InputDecoration(hintText: 'Password...'),
       onSaved: (value) {
         setState(() {
           password = value;
         });
       },
-      validator: (value) => value!.length > 6
+      validator: (value) => value!.length >= 6
           ? null
           : 'Please enter a valid password than 6 characters!',
     );
@@ -131,9 +142,11 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  void loginUser() {
+  void loginUser() async {
     if (loginFormKey.currentState!.validate()) {
       loginFormKey.currentState!.save();
+      bool _result = await _firebaseService!.loginUser(email: email!, password: password!);
+      if (_result) Navigator.popAndPushNamed(context, '/');
     }
   }
 }

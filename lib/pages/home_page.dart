@@ -1,6 +1,11 @@
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:finstagram/pages/feed_page.dart';
 import 'package:finstagram/pages/profile_page.dart';
+import 'package:finstagram/services/firebase_service.dart';
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -11,7 +16,17 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int currentPage = 0;
-  final List<Widget> pages = [FeedPage(), ProfilePage(),];
+  FirebaseService? _firebaseService;
+  final List<Widget> pages = [
+    FeedPage(),
+    ProfilePage(),
+  ];
+  @override
+  void initState() {
+    super.initState();
+     _firebaseService = GetIt.instance.get<FirebaseService>();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -19,7 +34,7 @@ class _HomePageState extends State<HomePage> {
         title: const Text('Finstagram'),
         actions: [
           GestureDetector(
-            onTap: () {},
+            onTap: _postImage,
             child: const Icon(
               Icons.add_a_photo,
             ),
@@ -30,7 +45,7 @@ class _HomePageState extends State<HomePage> {
               right: 8.0,
             ),
             child: GestureDetector(
-              onTap: () {},
+              onTap: _logoutUser,
               child: const Icon(
                 Icons.logout,
               ),
@@ -61,5 +76,17 @@ class _HomePageState extends State<HomePage> {
             icon: Icon(Icons.account_box),
           ),
         ]);
+  }
+
+  void _postImage() async {
+    FilePickerResult? _result =
+        await FilePicker.platform.pickFiles(type: FileType.image);
+    File _image = File(_result!.files.first.path!);
+    await _firebaseService!.postImage(_image);
+  }
+
+  void _logoutUser() async {
+    await _firebaseService!.logout();
+    Navigator.popAndPushNamed(context, '/login');
   }
 }

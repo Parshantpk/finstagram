@@ -1,7 +1,9 @@
 import 'dart:io';
-
+import 'dart:developer';
 import 'package:file_picker/file_picker.dart';
+import 'package:finstagram/services/firebase_service.dart';
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({Key? key}) : super(key: key);
@@ -12,9 +14,17 @@ class RegisterPage extends StatefulWidget {
 
 class _RegisterPageState extends State<RegisterPage> {
   double? _deviceHeight, _deviceWidth;
+  FirebaseService? _firebaseService;
   final GlobalKey<FormState> registrationFormKey = GlobalKey<FormState>();
-  String? name, email, password;
-  File? image;
+  String? _name, _email, _password;
+  File? _image;
+
+  @override
+  void initState() {
+    super.initState();
+    _firebaseService = GetIt.instance.get<FirebaseService>();
+  }
+
   @override
   Widget build(BuildContext context) {
     _deviceHeight = MediaQuery.of(context).size.height;
@@ -52,22 +62,6 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 
-  Widget registerButton() {
-    return MaterialButton(
-      onPressed: registerUser,
-      minWidth: _deviceWidth! * 0.70,
-      height: _deviceHeight! * 0.06,
-      color: Colors.red,
-      child: const Text(
-        'Register',
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: 25,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
 
   Widget registrationForm() {
     return Container(
@@ -89,14 +83,14 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   Widget profileImageWidget() {
-    var imageProvider = image != null
-        ? FileImage(image!)
+    var imageProvider = _image != null
+        ? FileImage(_image!)
         : const NetworkImage('https://i.pravatar.cc/300');
     return GestureDetector(
       onTap: () {
         FilePicker.platform.pickFiles(type: FileType.image).then((result) {
           setState(() {
-            image = File(result!.files.first.path!);
+            _image = File(result!.files.first.path!);
           });
         });
       },
@@ -119,7 +113,7 @@ class _RegisterPageState extends State<RegisterPage> {
       validator: (value) => value!.isNotEmpty ? null : 'Please enter a name!',
       onSaved: (value) {
         setState(() {
-          name = value;
+          _name = value;
         });
       },
     );
@@ -130,15 +124,15 @@ class _RegisterPageState extends State<RegisterPage> {
       decoration: InputDecoration(hintText: 'Email...'),
       onSaved: (value) {
         setState(() {
-          email = value;
+          _email = value;
         });
       },
       validator: (value) {
-        bool result = value!.contains(
+        bool _result = value!.contains(
           RegExp(
               r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,253}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,253}[a-zA-Z0-9])?)*$"),
         );
-        return result ? null : 'Please enter a valid email!';
+        return _result ? null : 'Please enter a valid email!';
       },
     );
   }
@@ -149,18 +143,39 @@ class _RegisterPageState extends State<RegisterPage> {
       decoration: InputDecoration(hintText: 'Password...'),
       onSaved: (value) {
         setState(() {
-          password = value;
+          _password = value;
         });
       },
-      validator: (value) => value!.length > 6
+      validator: (value) => value!.length >= 6
           ? null
           : 'Please enter a valid password than 6 characters!',
     );
   }
 
-  void registerUser() {
-    if (registrationFormKey.currentState!.validate() && image != null) {
+  Widget registerButton() {
+    return MaterialButton(
+      onPressed: registerUser,
+      minWidth: _deviceWidth! * 0.70,
+      height: _deviceHeight! * 0.06,
+      color: Colors.red,
+      child: const Text(
+        'Register',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 25,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  void registerUser() async {
+    if (registrationFormKey.currentState!.validate() && _image != null) {
       registrationFormKey.currentState!.save();
+      bool _result = await _firebaseService!.registerUser(
+          name: _name!, email: _email!, password: _password!, image: _image!);
+      log(_result.toString());
+      if (_result) Navigator.pop(context);
     }
   }
 }
